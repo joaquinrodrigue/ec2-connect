@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple CMS</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+    <!-- Page styles -->
+    <link href="style.css" rel="stylesheet" type="text/css">
+    <script src="globalutils.js"></script>
+</head>
+
+<body>
+    <div class="container not-logged-in">
+        <h1>You aren't logged in</h1>
+        <h3><a href="login.html">Please log in here</a></h3>
+    </div>
+
+    <div class="container search" id="logged-in" hidden>
+        <header class="row title-banner">
+            <h1 id="user-header">User's Content</h1>
+            <h3><a href="index.html">Back to Home</a></h3>
+        </header>
+
+        <main class="row">
+            <div class="container search-form">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="searchname">Search by Name</label>
+                    </div>
+                    <div class="col-md-9">
+                        <input name="searchname" id="searchname" type="text">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="searchcontent">Search by Content</label>
+                    </div>
+                    <div class="col-md-9">
+                        <input name="searchcontent" id="searchcontent" type="text">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="sort">Sort order</label>
+                    </div>
+                    <div class="col-md-4">
+                        <select name="order" id="order">
+                            <option value="ASC">Ascending</option>
+                            <option value="DESC">Descending</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <button id="search">Search</button>
+                    </div>
+                </div>
+            </div>
+
+            <h1 id="loading-text">Loading, please wait...</h1>
+            <table id="pages-table" class="table-responsive">
+            </table>
+        </main>
+    </div>
+
+    <script>
+        // Display table function
+        const displayTable = ({ status, json }) => {
+            document.getElementById('loading-text').hidden = true;
+            let table = `<thead>
+                <tr>
+                    <th>Page Name</th>
+                    <th>Link</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            if (typeof json.data !== 'undefined') {
+                for (row of json.data) {
+                    table += `<tr>
+                        <td>${row.name}</td>
+                        <td class="page-link"><a href="${serverAddress}/webpage/render/${row.id}">Link</a></td>
+                        <td class="edit-link"><a href="editpage.html?${new URLSearchParams({ id: row.id })}">Edit</a></td>
+                        <td class="delete-link"><a href="deletepage.html?${new URLSearchParams({ id: row.id })}">Delete</a></td>    
+                    </tr>`;
+                }
+            }
+            table += '</tbody>';
+            document.getElementById('pages-table').innerHTML = table;
+        }
+
+
+        // Display errors when the server returns no data/500 errors
+        const displayError = ({ status, json }) => {
+            document.getElementById('loading-text').hidden = false;
+            document.getElementById('loading-text').innerHTML = "No results found! Check your search please.";
+            document.getElementById('pages-table').innerHTML = '';
+        }
+
+        // Search function; separated so we can call it on load + on search button press
+        const search = () => {
+            const getParameters = {
+                owner: locateID(document.cookie)
+            };
+
+            if (document.getElementById('searchname').value.length !== 0) {
+                getParameters.name = document.getElementById('searchname').value;
+            }
+            if (document.getElementById('searchcontent').value.length !== 0) {
+                getParameters.body = document.getElementById('searchcontent').value;
+            }
+            if (document.getElementById('order').value.length !== 0) {
+                getParameters.order = document.getElementById('order').value;
+            }
+
+            // Fetch request
+            let fetchSettings = {
+                method: 'GET'
+            };
+            let getString = !isEmpty(getParameters) ? '?' + new URLSearchParams(getParameters) : '';
+            document.getElementById('loading-text').hidden = false;
+            document.getElementById('loading-text').innerHTML = "Loading, please wait...";
+
+            fetch(`${serverAddress}/webpage/${getString}`, fetchSettings)
+                .then(response => {
+                    return new Promise(resolve => response.json()
+                        .then(json => resolve({
+                            status: response.status,
+                            json,
+                        })
+                    ));
+                })
+                // Parse the response
+                // I hate how much indentation there is in this code so I'm splitting it up
+                .then(({ status, json }) => {
+                    if (status === 200) {
+                        displayTable({ status, json });
+                    }
+                    else {
+                        displayError({ status, json });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Check for if the user is logged in
+        if (document.cookie.includes('simplecmsloggedin')) {
+            // Get user data so we can display username and pages
+            let fetchSettings = {
+                method: 'GET'
+            };
+            let username = '';
+            console.log(locateID(document.cookie));
+
+            // Largest fetch block ever invented
+            fetch(`${serverAddress}/user/${locateID(document.cookie)}`, fetchSettings)
+                .then(response => {
+                    return new Promise(resolve => response.json()
+                        .then(json => resolve({
+                            status: response.status,
+                            json,
+                        })
+                    ));
+                })
+                .then(({ status, json }) => {
+                    if (status === 200 || status === 304) {
+                        username = json.data[0].username;
+                        console.log(json.data["0"].id);
+                    }
+                })
+                .then(() => {
+                    if (typeof username === 'string' && username.length > 0) {
+                        // Turn on the page
+                        document.getElementById('logged-in').hidden = false;
+                        document.getElementsByClassName('not-logged-in')[0].hidden = true;
+                        document.getElementsByClassName('not-logged-in')[0].innerHTML = "";
+                        document.getElementById('user-header').innerHTML = `${username}'s Content`;
+
+                        // Search button + search all on load
+                        document.getElementById('search').addEventListener('click', search);
+                        search();
+                    }
+                    else {
+                        document.getElementById('logged-in').innerHTML = "";
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        else {
+            document.getElementById('logged-in').innerHTML = "";
+        }
+    </script>
+</body>
+
+</html>

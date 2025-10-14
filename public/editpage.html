@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple CMS</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+    <!-- Page styles -->
+    <link href="style.css" rel="stylesheet" type="text/css">
+    <script src="globalutils.js"></script>
+</head>
+
+<body>
+    <div class="container not-logged-in" id="not-logged-in" hidden>
+        <h1>You aren't logged in</h1>
+        <h3><a href="login.html">Please log in here</a></h3>
+    </div>
+
+    <div class="container page-not-found" id="page-not-found" hidden>
+        <h1>Page not found</h1>
+        <h3><a href="createpage.html">Create this page</a></h3>
+        <h3><a href="index.html">Back to Home</a></h3>
+    </div>
+
+    <div class="edit-page" id="edit-page" hidden>
+        <!-- Thinking of putting this in an IFrame? -->
+        <!-- I'm not quite sure how to do this but -->
+        <header class="tools" id="tools">
+            <ul>
+                <li><button id="save-and-quit">Save</button></li>
+                <li><button id="new-content">New</button></li>
+                <li><button id="resize-content">Resize</button></li>
+                <li><button id="move-content">Move</button></li>
+                <li><button id="edit-content">Edit</button></li>
+                <li><button id="edit-styles">Styles</button></li>
+                <li><button id="delete-content">Delete</button></li>
+            </ul>
+        </header>
+
+        <div class="active" id="active">
+            <div class="popup error error-popup" id="error-popup" hidden>&nbsp;</div>
+            <div class="popup new-content-select" id="select-new-popup" hidden>
+                <p>Select an item to add:</p>
+                <button id="add-text">Text</button>
+                <button id="add-header">Header</button>
+                <button id="add-image">Image</button>
+                <button id="add-section">Section</button>
+                <button id="add-list">List</button>
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+            </div>
+            <div class="popup delete-content-warning" id="delete-content-warning" hidden>
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <p>Click on content to delete it - Please be careful!</p>
+            </div>
+            <div class="popup edit-content-text" id="edit-content-text" hidden>
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <p>Click on content to see editing options for it</p>
+            </div>
+            <div class="popup place-new-element" id="place-new-element" hidden></div>
+            <div class="popup edit-selected-content" id="edit-selected-content" hidden></div>
+        </div>
+
+        <!-- This is the part I'm thinking about putting in an IFrame -->
+        <iframe class="page" id="page"></iframe>
+    </div>
+
+    <script>
+        const pageId = new URLSearchParams(window.location.search).get('id');
+        
+        // Only display page editor if logged in
+        if (document.cookie.includes('simplecmsloggedin')) {
+            // get the page details from the database
+            document.getElementById('not-logged-in').hidden = true;
+            document.getElementById('not-logged-in').innerHTML = "";
+            let fetchSettings = {
+                method: 'GET'
+            };
+            //console.log(pageId);
+            let title, head, body;
+
+            if (typeof pageId !== 'string' || pageId.length === 0) {
+                document.getElementById('page-not-found').hidden = false;
+                //console.log(`couldn't find the id, it looks like this: ${pageId} and is ${typeof(pageId)}`);
+                document.getElementById('edit-page').innerHTML = "";
+            }
+            else {
+                // I'm thinking the page id will be passed via the URL
+                //console.log(`${serverAddress}/webpage/${pageId}`);
+                fetch(`${serverAddress}/webpage/${pageId}`, fetchSettings)
+                    .then(response => {
+                        return new Promise(resolve => response.json()
+                            .then(json => resolve({
+                                status: response.status,
+                                json,
+                            })
+                        ));
+                    })
+                    .then(({ status, json }) => {
+                        // i hate types in js
+                        if ((status === 200 || status === 304) && json.data['0'].owner == locateID(document.cookie)) {
+                            title = json.data['0'].name;
+                            head = json.data['0'].head;
+                            body = json.data['0'].body;
+                            //console.log(title, head, body);
+                            document.getElementById('edit-page').hidden = false;
+                            document.getElementById('page-not-found').innerHTML = "";
+                            // Hooray we have page data
+                            // This took so long to figure out dear god
+                            //console.log(getUserPage().querySelector('body'));
+                            getUserPage().querySelector('body').innerHTML = body || "<h1>Hello World</h1>";
+                            document.getElementById('save-and-quit').addEventListener('click', saveAndQuit);
+                            document.getElementById('new-content').addEventListener('click', newContent);
+                            document.getElementById('add-text').addEventListener('click', placeTextOnPage);
+                            document.getElementById('add-header').addEventListener('click', placeHeaderOnPage);
+                            document.getElementById('add-image').addEventListener('click', placeImageOnPage);
+                            document.getElementById('add-section').addEventListener('click', placeSectionOnPage);
+                            document.getElementById('add-list').addEventListener('click', placeListOnPage);
+                            document.getElementById('edit-content').addEventListener('click', editContent);
+                            document.getElementById('delete-content').addEventListener('click', deleteContent);
+                        }
+                        else {
+                            document.getElementById('page-not-found').hidden = false;
+                            console.log(`couldnt find the thingy, data owner: ${json.data['0'].owner}, cookie: ${locateID(document.cookie)}`)
+                            document.getElementById('edit-page').innerHTML = "";
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // I kinda don't know what to do here so I'm redirecting
+                        window.location.replace('/');
+                    });
+            }
+            
+        }
+        else {
+            document.getElementById('not-logged-in').hidden = false;
+            document.getElementById('page-not-found').innerHTML = "";
+            document.getElementById('edit-page').innerHTML = "";
+        } 
+
+        // --- HELPFUL FUNCTIONS ---
+        // Closes all popups
+        const closePopups = () => {
+            document.getElementById('error-popup').hidden = true;
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = true;
+            document.getElementById('delete-content-warning').hidden = true;
+            document.getElementById('edit-content-text').hidden = true;
+            document.getElementById('edit-selected-content').hidden = true;
+            // ... add other popups to close here
+
+            // Found from https://stackoverflow.com/questions/9251837/how-to-remove-all-listeners-in-an-element
+            // Removes the event listeners in this node - modified because it uses var
+            // It also might be unbearably slow if the document gets really big
+            // On second thought, it isn't working so this is a TODO for later
+            // find out why this causes a NotFoundError later
+            let oldBody = getUserPage().querySelector('body');
+            let newBody = oldBody.cloneNode(false);
+            while (oldBody.hasChildNodes()) newBody.appendChild(oldBody.firstChild);
+            getUserPage().querySelector('html').replaceChild(newBody, getUserPage().querySelector('body'));
+        }
+
+        // Gets the document object for the IFrame window
+        // https://stackoverflow.com/questions/3999101/get-iframes-document-from-javascript-in-main-document
+        const getUserPage = () => {
+            let frame = document.getElementById('page');
+            //console.log(frame);
+            return frame.contentDocument || frame.contentWindow.document;
+        }
+
+        // --- EDIT PAGE FUNCTIONS ---
+        // Save and quit button
+        const saveAndQuit = () => {
+            let saveData = new FormData();
+            saveData.append('body', getUserPage().querySelector('body').innerHTML);
+            saveData.append('head', getUserPage().querySelector('head').innerHTML);
+
+            fetchSettings = {
+                method: 'PUT',
+                body: saveData
+            };
+
+            fetch(`${serverAddress}/webpage/${pageId}`, fetchSettings)
+                .then(response => {
+                    return new Promise(resolve => response.json()
+                        .then(json => resolve({
+                            status: response.status,
+                            json
+                        })
+                    ));
+                })
+                .then(({ status, json }) => {
+                    if (status === 200) {
+                        // data saved successfully, we can redirect
+                        window.location.replace('mypages.html');
+                    }
+                    else {
+                        document.getElementById('error-popup').hidden = false;
+                        document.getElementById('error-popup').innerHTML = `
+                            <p>Couldn't save the page!</p>
+                            <button class='close-popup' onclick='closePopups()'>Ok</button>`;
+                    }
+                });
+        }
+
+        // Add new content popup - this isn't the function that does the work
+        const newContent = () => {
+            document.getElementById('select-new-popup').hidden = false;
+        }
+
+        // Lets the user place an element on the page - this also doesn't do the work, or at least it only does some of it
+        const placeTextOnPage = () => {
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = false;
+            document.getElementById('place-new-element').innerHTML = `
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <input type='text' placeholder='Type to enter text, click to add to page' id='content-data'>
+                <p id='content-to-be-placed' hidden></p>`;
+            getUserPage().addEventListener('click', addElementToPage);
+        }
+        // Places headers instead of text
+        const placeHeaderOnPage = () => {
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = false;
+            document.getElementById('place-new-element').innerHTML = `
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <p>Header type:</p>
+                <select name='change-header' id='change-header'>
+                    <option value='h1'>H1</option>
+                    <option value='h2'>H2</option>
+                    <option value='h3'>H3</option>
+                    <option value='h4'>H4</option>
+                    <option value='h5'>H5</option>
+                    <option value='h6'>H6</option>
+                </select>
+                <input type="text" placeholder='Type to enter text, click to add to page' id='content-data'>
+                <h1 id='content-to-be-placed' hidden></h1>
+                <h2 hidden></h2>
+                <h3 hidden></h3>
+                <h4 hidden></h4>
+                <h5 hidden></h5>
+                <h6 hidden></h6>`;
+            document.getElementById('place-new-element').querySelector('#change-header').addEventListener('change', changeHeaderType);
+            getUserPage().addEventListener('click', addElementToPage)
+        }
+        const changeHeaderType = (event) => {
+            document.getElementById('content-to-be-placed').removeAttribute('id');
+            document.getElementById('place-new-element').querySelector(event.target.value).setAttribute('id', 'content-to-be-placed');
+        }
+        // ---- TOODODODODODODODOODODKOGSOIOEINJOVNWEJFOIWEIOFJIWOEJFOEWJFOIEWJFOIJEWOIFJEWIOKFJIEWJFOIEWFEWJIFEW ----
+        const placeImageOnPage = () => {
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = false;
+            document.getElementById('place-new-element').innerHTML = `
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <p>TODO: image placer, sorry!</p>`;
+        }
+        const placeSectionOnPage = () => {
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = false;
+            document.getElementById('place-new-element').innerHTML = `
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <input type='text' placeholder='Type to enter text, click to add to page' id='content-data'>
+                <div style='min-height: 50px;' id='content-to-be-placed'></div>`;
+            getUserPage().addEventListener('click', addElementToPage);
+        }
+        const placeListOnPage = () => {
+            document.getElementById('select-new-popup').hidden = true;
+            document.getElementById('place-new-element').hidden = false;
+            document.getElementById('place-new-element').innerHTML = `
+                <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                <input type="text" placeholder='Type to enter text, click to add to page' id='content-data'>
+                <select name='change-list' id='change-list'>
+                    <option value='ul'>Unordered</option>
+                    <option value='ol'>Ordered</option>
+                </select>
+                <ul id='content-to-be-placed' hidden><li></li></ul>
+                <ol hidden><li></li></ol>`;
+                // Reusing the changeHeaderType function because it works the same for this case as with headings
+            document.getElementById('place-new-element').querySelector('#change-list').addEventListener('change', changeHeaderType);
+            getUserPage().addEventListener('click', addElementToPage);    
+        }
+
+        // This is the function that does the work
+        const addElementToPage = (event) => {
+            // get the things
+            getUserPage().removeEventListener('click', addElementToPage);
+            let element = document.getElementById('place-new-element').querySelector('#content-to-be-placed').cloneNode();
+            let elementData = document.getElementById('place-new-element').querySelector('#content-data').value;
+            //console.log(element);
+            //console.log(elementData);
+            let x = event.x, y = event.y;
+            if (elementData === undefined || elementData.length === 0) {
+                elementData = "Hello world";
+            }
+            if (Object.getPrototypeOf(element).toString() == '[object HTMLUListElement]'
+                || Object.getPrototypeOf(element).toString() == '[object HTMLOListElement]') {
+                elementData = `<li>${elementData}</li>`;
+            }
+            element.innerHTML = elementData;
+            element.removeAttribute('id');
+            element.hidden = false;
+
+            // solution 2: try actually finding where in the tree to place it
+            let target = event.target;
+            //console.log(Object.getPrototypeOf(target).toString());
+            while (Object.getPrototypeOf(target).toString() != '[object HTMLBodyElement]' 
+                && Object.getPrototypeOf(target).toString() != '[object HTMLDivElement]') {
+                target = target.parentElement;
+            }
+            target.append(element);
+
+            document.getElementById('place-new-element').hidden = true;
+        }
+
+        // Delete something from the page
+        const deleteContent = () => {
+            document.getElementById('delete-content-warning').hidden = false;
+            getUserPage().addEventListener('click', removeElementFromPage);
+        }
+
+        // Removes the element you click, basically the reverse of the above
+        const removeElementFromPage = (event) => {
+            getUserPage().removeEventListener('click', removeElementFromPage);
+            let target = event.target;
+            //console.log(target);
+
+            // error checking stuff
+            if (target.childNodes.length > 1) {
+                document.getElementById('error-popup').hidden = false;
+                document.getElementById('error-popup').innerHTML = `
+                    <p>Can't delete a container with elements in it!</p>
+                    <button id="close" class="close-popup" onclick="closePopups()">Ok</button>`
+                return;
+            }
+
+            if (Object.getPrototypeOf(target).toString() == '[object HTMLBodyElement]') {
+                document.getElementById('error-popup').hidden = false;
+                document.getElementById('error-popup').innerHTML = `
+                    <p>Please click on an element in the page.</p>
+                    <button id="close" class="close-popup" onclick="closePopups()">Ok</button>`
+            }
+
+            // Now we delete
+            target.remove();
+
+            document.getElementById('delete-content-warning').hidden = true;
+        }
+
+        // Edit content on the page
+        const editContent = () => {
+            document.getElementById('edit-content-text').hidden = false;
+            getUserPage().addEventListener('click', editElementSelectPopup);
+        }
+
+        // Select the edit function for this element
+        const editElementSelectPopup = (event) => {
+            //console.log("the event is listened properly");
+            getUserPage().removeEventListener('click', editElementSelectPopup);
+            let target = event.target;
+            console.log(target);
+            document.getElementById('edit-selected-content').hidden = false;
+
+            // For some reason
+            // Javascript allows you to put a string in a switch statement. Does it work? No.
+            // For some reason, unlike this big if-else chain, it doesn't actually recognize the strings despite being the same.
+            // Yet another reason to hate this language.
+            let proto = Object.getPrototypeOf(target).toString();
+            // A tag
+            if (proto === "[object HTMLAnchorElement]") {
+                document.getElementById('edit-selected-content').innerHTML = `
+                    <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                    <button id="accept" class="accept-changes">Ok</button>
+                    <label for="update-text">Text</label>
+                    <input name="update-text" id="update-text" type="text" value="${target.innerHTML}">
+                    <label for="update-link">Link</label>
+                    <input name="update-link" id="update-link" type="text" value="${target.href}">
+                    <label for="update-color">Color</label>
+                    <input name="update-color" id="update-color" type="color" value="${target.style.getPropertyValue('color')}">`;
+                document.getElementById('accept').addEventListener('click', (event) => {
+                    target.innerHTML = document.getElementById('update-text').value;
+                    target.href = document.getElementById('update-link').value;
+                    target.style.setProperty('color', document.getElementById('update-color').value);
+                });
+            }
+            // button tag
+            else if (proto === "[object HTMLButtonElement") {
+                // tordo
+            }
+            // h1-h6 tags
+            else if (proto === "[object HTMLHeadingElement]") {
+                document.getElementById('edit-selected-content').innerHTML = `
+                    <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                    <button id="accept" class="accept-changes">Ok</button>
+                    <label for="update-text">Text</label>
+                    <input name="update-text" id="update-text" type="text" value="${target.innerHTML}">
+                    <label for="update-size">Font Size</label>
+                    <input name="update-size" id="update-size" type="text" value="${target.style.getPropertyValue('font-size')}">
+                    <label for="update-type">Heading Type</label>
+                    <select name="update-type" id="update-type">
+                        <option value="h1">H1</option>
+                        <option value="h2">H2</option>
+                        <option value="h3">H3</option>
+                        <option value="h4">H4</option>
+                        <option value="h5">H5</option>
+                        <option value="h6">H6</option>
+                    </select>`;
+                document.getElementById('accept').addEventListener('click', (event) => {
+                    let newHeading = document.createElement(document.getElementById('update-type').value);
+                    newHeading.innerHTML = document.getElementById('update-text').value;
+                    newHeading.style.setProperty('font-size', document.getElementById('update-size').value);
+                    target.parentElement.replaceChild(newHeading, target);
+                    document.getElementById('edit-selected-content').hidden = true;
+                });
+            }
+            // img tag
+            else if (proto === "[object HTMLImageElement]") {
+                // toddod
+            }
+            // li tag
+            else if (proto === "[object HTMLLIElement]") {
+                target = target.parentElement;
+                if (Object.getPrototypeOf(target).toString() == "[object HTMLOListElement]") {
+                    // todo
+
+                }
+                else {
+                    // todo 2
+                }
+            }
+            // ol tag
+            else if (proto === "[object HTMLOListElement]") {
+                let lis = "";
+                for (let i = 0; i < target.childNodes.length; i++) {
+                    lis += `<div>
+                        <p>#${i}</p>
+                        <label for="update-text-${i}">Text</label>
+                        <input name="update-text-${i}" id="update-text-${i}" type="text"  value="${target.childNodes[i].innerHTML}">
+                    </div>`;
+                }
+                document.getElementById('edit-selected-content').innerHTML = `
+                    <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                    <button id="accept" class="accept-changes">Ok</button>
+                    <label for="update-size">Font Size</label>
+                    <input name="update-size" id="update-size" type="number" value="${target.style.getPropertyValue('font-size')}">
+                    <label for="update-num-elements">Number of Elements</label>
+                    <input name="update-num-elements" id="update-num-elements" type="number" value="${target.childNodes.length}">
+                    ${lis}`;
+                document.getElementById('accept').addEventListener('click', (event) => {
+
+                });
+            }
+            // p tag
+            else if (proto === "[object HTMLParagraphElement]") {
+                document.getElementById('edit-selected-content').innerHTML = `
+                    <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                    <button id="accept" class="accept-changes">Ok</button>
+                    <label for="update-text">Text</label>
+                    <input name="update-text" type="text" id="update-text" value="${target.innerHTML}" >
+                    <label for="update-size">Font Size</label>
+                    <input name="update-size" id="update-size" type="text" value=${target.style.getPropertyValue('font-size')}>`;
+                    // not sure how to do the updating for now
+                    // lets just... try something
+                    // because the fields to change are different for each element, I'm using this for the update function
+                document.getElementById('accept').addEventListener('click', (event) => {
+                    target.innerHTML = document.getElementById('update-text').value;
+                    target.style.setProperty('font-size', document.getElementById('update-size').value);
+                    document.getElementById('edit-selected-content').hidden = true;
+                });
+            }
+            // ul tag
+            else if (proto === "[object HTMLUListElement]") {
+                let lis = "";
+                for (let i = 0; i < target.childNodes.length; i++) {
+                    lis += `<div>
+                        <p>#${i}</p>
+                        <label for="update-text-${i}">Text</label>
+                        <input name="update-text-${i}" id="update-text-${i}" type="text"  value="${target.childNodes[i].innerHTML}">
+                    </div>`;
+                }
+                document.getElementById('edit-selected-content').innerHTML = `
+                    <button id="close" class="close-popup" onclick="closePopups()">Cancel</button>
+                    <button id="accept" class="accept-changes">Ok</button>
+                    <label for="update-size">Font Size</label>
+                    <input name="update-size" id="update-size" type="number" value="${target.style.getPropertyValue('font-size')}">
+                    <label for="update-num-elements">Number of Elements</label>
+                    <input name="update-num-elements" id="update-num-elements" type="number" value="${target.childNodes.length}">
+                    ${lis}`;
+            }
+            // no valid tag discovered
+            else {
+                getUserPage().addEventListener('click', editElementSelectPopup);
+                console.log(Object.getPrototypeOf(target));
+                document.getElementById('edit-selected-content').hidden = true;
+                return;
+            }
+
+            document.getElementById('edit-content-text').hidden = true;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,262 @@
+body {
+    background: linear-gradient(90deg,steelblue 0%, rgb(35, 188, 219) 100%);
+    font-size: 1.1em;
+}
+
+/*.title-banner h1, .title-footer {
+    padding-top: 10%;
+}*/
+
+.title-banner {
+    text-align: center;   
+}
+
+.title-banner h3 {
+    border-bottom: 3px solid rgb(0, 0, 190);
+    padding-bottom: 8px;
+    display: inline-block;
+    width: fit-content;
+    min-width: 200px;
+    margin: auto;
+}
+
+.title-footer {
+    position: absolute;
+    text-align: center;
+    bottom: 0vh;
+    width: 750px;
+    left: calc(50% - 375px);
+    margin: auto;
+}
+
+nav {
+    font-size: 1.3em;
+}
+
+nav ul {
+    padding-left: 0px;
+    padding-top: 10px;
+}
+
+nav ul li {
+    list-style: none;
+}
+
+a {
+    color: black;
+    text-decoration: none;
+    transition: 0.2s;
+    font-weight: 400;
+}
+
+a:hover {
+    color: rgb(0, 0, 190);
+}
+
+.account-form input, .account-form button, .search-form input, .search-form button, .serach-form select, 
+.webpage-form input, .webpage-form button, .tools button, .popup button {
+    max-width: 30%;
+    background-color: rgba(180, 187, 208, 1);
+}
+
+.account-form button:hover, .search-form button:hover, .search-form input, .search-form button, .serach-form select, 
+.webpage-form input, .webpage-form button, .tools button:hover, .popup button:hover {
+    background-color: rgb(201, 214, 255);
+}
+
+.create .title-banner {
+    margin: calc(50vh - 240px) auto 0;
+}
+
+.search .title-banner {
+    margin: calc(50vh - 350px) auto;
+}
+
+.account-form, .webpage-form {
+    background-color: rgb(210, 239, 249);
+    border-radius: 15px;
+    padding: 15px;
+    margin: auto;
+    width: calc(50% + 200px); /* Tried fit-content, didn't change the width? I'm finding a weird solution here */
+}
+
+.create label {
+    display: inline;
+    width: 45%;
+    text-align: right;
+}
+
+.create input, .create button {
+    max-width: 45%;
+    width: 45%;
+}
+
+label.error-active, label.error-inactive {
+    display: block;
+    width: 100%;
+}
+
+.not-logged-in, .page-not-found, .main-section, .delete-page {
+    background-color: rgb(210, 239, 249);
+    border-radius: 15px;
+    padding: 15px;
+    height: 320px;
+    margin: calc(50vh - 160px) auto;
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    flex-wrap: nowrap;
+}
+
+.main-section .row, .not-logged-in .row, .page-not-found .row, .webpage-form .row, .account-form .row {
+    margin-left: 0;
+}
+
+.error-active {
+    background-color: rgb(233, 120, 120);
+    transition: 0.2s;
+}
+
+.error-inactive {
+    background-color: none;
+    transition: 0.2s;
+}
+
+#pages-table {
+    text-align: center;
+    margin: 30px 0px;
+}
+
+#pages-table tr:nth-child(even) {
+    background-color: lightblue;
+}
+
+#pages-table tr:nth-child(odd) {
+    background-color: rgb(193, 220, 230);
+}
+
+#pages-table thead tr {
+    background-color: white !important; 
+}
+
+.page-link a, .edit-link a, .delete-link a {
+    border-radius: 5px;
+}
+
+.page-link a:hover, .edit-link a:hover, .delete-link a:hover {
+    background-color: white;
+}
+
+.page-link a {
+    background-color: lightsteelblue;
+}
+
+.edit-link a {
+    background-color: lightgoldenrodyellow; /* why is this a color? */
+}
+
+.delete-link a {
+    background-color: lightpink;
+}
+
+#edit-page iframe {
+    width: 95vw;
+    height: 95vh;
+    margin: auto;
+    margin-top: 50px;
+}
+
+.popup {
+    position: absolute;
+    top: 5em;
+    background-color: rgb(210, 239, 249);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#select-new-popup, #error-popup, #edit-selected-content, #place-new-element, #delete-content-warning, #edit-content-text {
+    width: 300px;
+    left: calc(50vw - 150px);
+}
+
+.tools {
+    position: fixed;
+    top: 0;
+}
+
+.tools ul {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100vw;
+    padding: 0px 20px;
+}
+
+.tools ul li {
+    list-style: none;
+    padding: 10px;
+}
+
+.tools ul li button {
+    width: 75px;
+    max-width: 100%;
+}
+
+.tools button, .popup button {
+    border-radius: 10px;
+}
+
+@media screen and (max-width: 800px) {
+    body { 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+        font-size: 1em;
+    }
+
+    .title-banner h3 {
+        display: block;
+        width: 100%;
+    }
+
+    .title-footer {
+        width: 100%;
+        left: 0;
+    }
+
+    .account-form input, .account-form button, .search-form input, .search-form button, .serach-form select, 
+    .webpage-form input, .webpage-form button {
+        max-width: 100%;
+    }
+
+    .search .title-banner {
+        margin-bottom: 10px;
+    }
+}
+
+@media screen and (max-width: 450px) {
+    body {
+        font-size: 0.9em;
+    }
+
+    .main-section {
+        height: 400px;
+        margin: calc(50vh - 200px) auto;
+        padding: 8px;
+    }
+
+    .account-form .webpage-form {
+        width: 100%;
+    }
+
+    .create label, .create input, .create button {
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+}

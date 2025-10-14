@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple CMS</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+    <!-- Page styles -->
+    <link href="style.css" rel="stylesheet" type="text/css">
+    <script src="globalutils.js"></script>
+</head>
+
+<body>
+    <div class="container create">
+        <header class="row title-banner">
+            <h1>Sign In</h1>
+            <h3><a href="index.html">Back to Home</a></h3>
+        </header>
+
+        <div class="row">
+            <p class="error-inactive login-error" id="login-error">&nbsp;</p>
+        </div>
+
+        <main class="row account-form">
+            <div class="row">
+                <label for="username">Username</label>
+                <input name="username" id="username" type="text">
+                <label class="error-inactive username-error" id="username-error">&nbsp;</label>
+            </div>
+
+            <div class="row">
+                <label for="password">Password</label>
+                <input name="password" id="password" type="password">
+                <label class="error-inactive password-error" id="password-error">&nbsp;</label>
+            </div>
+
+            <div class="row">
+                <label for="confirm">Confirm Password</label>
+                <input name="confirm" id="confirm" type="password">
+                <label class="error-inactive confirm-error" id="confirm-error">&nbsp;</label>
+            </div>
+
+            <div class="row">
+                <label>Submit</label>
+                <button id="submit">Log In</button>
+            </div>
+
+            <div class="row">
+                <label>Create Account</label>
+                <button id="create">Create Account</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // SUBMIT BUTTON
+        document.getElementById('submit').addEventListener('click', function() {
+            let password = document.getElementById('password').value;
+            let username = document.getElementById('username').value;
+            //let confirmPassword = document.getElementById('password').value;
+
+            document.getElementById('password-error').innerHTML = '&nbsp;';
+            document.getElementById('confirm-error').innerHTML = '&nbsp;';
+            document.getElementById('username-error').innerHTML = '&nbsp;';
+            document.getElementById('login-error').innerHTML = '&nbsp;';
+            Array.from(document.getElementsByClassName('error-active')).forEach(element => { element.classList.replace('error-active', 'error-inactive') });
+
+            // Error checks before sending
+            if (password.length === 0) {
+                // ERROR
+                document.getElementById('password-error').innerHTML = "Please enter a password.";
+                document.getElementById('password-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+            if (password.length > 127) {
+                document.getElementById('password-error').innerHTML = "Please enter a shorter password.";
+                document.getElementById('password-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+            if (username.length === 0) {
+                document.getElementById('username-error').innerHTML = "Please enter a username.";
+                document.getElementById('username-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+            if (username.length > 127) {
+                document.getElementById('username-error').innerHTML = "Please enter a shorter username.";
+                document.getElementById('username-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+
+            // Not sure whether to encrypt the password before sending it to the server or whether to just encrypt it server side
+            // and see if it works. Its probably better to encrypt server side and then check the DB but idk
+            // We'll try this for now, asking for more input later
+            const getParameters = {
+                username: username,
+                password: password
+            };
+
+            const fetchSettings = {
+                method: "GET"
+            }
+
+            fetch(`${serverAddress}/user/${username}/?${new URLSearchParams(getParameters)}`, fetchSettings)
+                .then(response => {
+                    return new Promise(resolve => response.json()
+                        .then(json => resolve({
+                            status: response.status,
+                            json,
+                        })
+                    ));
+                })
+                .then(({ status, json }) => {
+                    // something something error messages
+                    if (!json.data) {
+                        document.getElementById('login-error').innerHTML = 'Invalid username or password, or that account does not yet exist.';
+                        document.getElementById('login-error').classList.replace('error-inactive', 'error-active');
+                    }
+                    else {
+                        window.location.replace(`${serverAddress}/`);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('login-error').innerHTML = 'Something went wrong, please try again.';
+                    document.getElementById('login-error').classList.replace('error-inactive', 'error-active');
+                    console.error('Error:', error);
+                });
+        });
+
+        // CREATE ACCOUNT BUTTON
+        document.getElementById('create').addEventListener('click', function() {
+            let username = document.getElementById('username').value;
+            let password = document.getElementById('password').value;
+            let confirmPassword = document.getElementById('password').value;
+            console.log(username, password, confirmPassword);
+
+            document.getElementById('password-error').innerHTML = '&nbsp;';
+            document.getElementById('confirm-error').innerHTML = '&nbsp;';
+            document.getElementById('username-error').innerHTML = '&nbsp;';
+            document.getElementById('login-error').innerHTML = '&nbsp;';
+            Array.from(document.getElementsByClassName('error-active')).forEach(element => { element.classList.replace('error-active', 'error-inactive') });
+
+            // Error checks before sending
+            if (password !== confirmPassword) {
+                // ERROR
+                document.getElementById('password-error').innerHTML = "Password does not match!";
+                document.getElementById('confirm-error').innerHTML = "Password does not match!";
+                document.getElementById('password-error').classList.replace('error-inactive', 'error-active');
+                document.getElementById('confirm-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+            if (password.length === 0) {
+                document.getElementById('password-error').innerHTML = "Please enter a password.";
+                document.getElementById('password-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+            if (username.length === 0) {
+                document.getElementById('username-error').innerHTML = "Please enter a username.";
+                document.getElementById('username-error').classList.replace('error-inactive', 'error-active');
+                return;
+            }
+
+            // Send it
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            const fetchSettings = {
+                method: "POST",
+                body: formData
+            };
+
+            fetch(`${serverAddress}/user/`, fetchSettings)
+                .then(response => {
+                    return new Promise(resolve => response.json()
+                        .then(json => resolve({
+                            status: response.status,
+                            json,
+                        })
+                    ));
+                })
+                .then(({ status, json }) => {
+                    // something something error messages
+                    if (!json.data) {
+                        document.getElementById('login-error').innerHTML = 'Invalid username or password, or that account already exists.';
+                        document.getElementById('login-error').classList.replace('error-inactive', 'error-active');
+                    }
+                    else {
+                        window.location.replace(`${serverAddress}/`);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('login-error').innerHTML = 'Something went wrong, please try again.';
+                    document.getElementById('login-error').classList.replace('error-inactive', 'error-active');
+                    console.error('Error:', error);
+                });
+        });
+    </script>
+</body>
+
+</html>
