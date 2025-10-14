@@ -136,4 +136,4 @@ dist
 .pnp.*
 
 # Adding this so I don't leak my database credentials on accident
-Model/connection.js
+# Model/connection.js
