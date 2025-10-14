@@ -29,7 +29,7 @@ const upload = multer({
     }
 });
 // --- Port number ---
-const port = 80;
+const port = 3000;
 
 // --- WEBPAGES ---
 // GET all pages
