@@ -8,7 +8,7 @@
 // If you choose to host on a port other than port 80
 // make sure to change it here too, not just in the
 // server code
-const serverAddress = 'http://54.214.148.223:3000';
+const serverAddress = 'https://ec2-connect.onrender.com';
 
 // Whether an object is empty
 const isEmpty = obj => Object.keys(obj).length === 0;
