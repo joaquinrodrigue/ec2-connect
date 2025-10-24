@@ -160,7 +160,7 @@
             document.getElementById('loading-text').hidden = false;
             document.getElementById('loading-text').innerHTML = "Loading, please wait...";
 
-            fetch(`http://localhost/webpage/${getString}`, fetchSettings)
+            fetch(`${serverAddress}/webpage/${getString}`, fetchSettings)
                 .then(response => {
                     return new Promise(resolve => response.json()
                         .then(json => resolve({
